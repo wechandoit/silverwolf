@@ -32,6 +32,20 @@ class Verbose_Player(db.Model):
 def hello_world():
     return "<p>Hello, World!</p>"
 
+@app.route("/users")
+def get_all_users():
+    player_list = Player.query.all()
+    return {
+        "players": [
+            {
+                "name": player.name,
+                "tag": player.tag,
+                "puuid": player.puuid,
+                "region": player.region
+            } for player in player_list
+        ]
+    }
+
 @app.route("/<name>/<tag>")
 async def get_player_stats(name, tag):
     query = select(Player).where(
@@ -85,6 +99,8 @@ async def get_verbose_player_stats(puuid):
             db.session.add(new_player)
             db.session.commit()
             return {
+                'name': existing_player.name,
+                'tag': existing_player.tag,
                 'puuid': player_info['puuid'],
                 'account_level': player_info['account_level'],
                 'card': val.get_player_card(player_info['card']!=None, player_info['card']),
@@ -92,6 +108,8 @@ async def get_verbose_player_stats(puuid):
             }
         else:
             return {
+                'name': existing_player.name,
+                'tag': existing_player.tag,
                 'puuid': existing_verbose_player.puuid,
                 'account_level': existing_verbose_player.account_level,
                 'card': val.get_player_card(existing_verbose_player.card!=None, existing_verbose_player.card),
