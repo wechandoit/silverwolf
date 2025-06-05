@@ -74,7 +74,7 @@ async def get_player_comp_mmr_history(region, puuid):
             data = data['data']
 
             if len(data) < 1:
-                return f'{puuid} has no recently logged ranked games'
+                return None
             else:
                 match_info = []
                 for match in data[:10]:

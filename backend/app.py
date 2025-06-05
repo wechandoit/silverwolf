@@ -141,6 +141,8 @@ async def get_mmr_history(puuid):
 
     existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
     if existing_player is None:
+        return f'<p>{puuid} is not in the db yet!</p>'
+    else:
         player_info = await val.get_verbose_player_stats(puuid)
 
         if player_info is None:
