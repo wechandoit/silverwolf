@@ -101,6 +101,10 @@ async def get_verbose_player_stats(puuid):
         existing_verbose_player = db.session.execute(is_player_in_verbose_table_query).scalar_one_or_none()
         if existing_verbose_player is None:
             player_info = await val.get_verbose_player_stats(puuid)
+
+            if player_info is None:
+                return f'<p>{puuid} does not have verbose stats</p>'
+
             new_player = Verbose_Player(
                 puuid=player_info['puuid'],
                 account_level=player_info['account_level'],
@@ -115,7 +119,8 @@ async def get_verbose_player_stats(puuid):
                 'puuid': player_info['puuid'],
                 'account_level': player_info['account_level'],
                 'card': val.get_player_card(player_info['card']!=None, player_info['card']),
-                'title': await val.get_title(player_info['title']!=None, player_info['title'])
+                'title': await val.get_title(player_info['title']!=None, player_info['title']),
+                'region': player_info['region']
             }
         else:
             return {
@@ -124,7 +129,8 @@ async def get_verbose_player_stats(puuid):
                 'puuid': existing_verbose_player.puuid,
                 'account_level': existing_verbose_player.account_level,
                 'card': val.get_player_card(existing_verbose_player.card!=None, existing_verbose_player.card),
-                'title': await val.get_title(existing_verbose_player.title!=None, existing_verbose_player.title)
+                'title': await val.get_title(existing_verbose_player.title!=None, existing_verbose_player.title),
+                'region': existing_player.region
             }
         
 @app.route("/mmr-history/<puuid>")
@@ -135,9 +141,16 @@ async def get_mmr_history(puuid):
 
     existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
     if existing_player is None:
-        return f'<p>{puuid} not in the database</p>'
-    else:
-        mmr_history = await val.get_player_comp_mmr_history(existing_player.region, puuid)
+        player_info = await val.get_verbose_player_stats(puuid)
+
+        if player_info is None:
+            return f'<p>{puuid} does not have a mmr history</p>'
+
+        mmr_history = await val.get_player_comp_mmr_history(player_info['region'], puuid)
+
+        if mmr_history is None:
+            return f'<p>{puuid} does not have a mmr history</p>'
+        
         matches_added = 0
         for match in mmr_history:
             is_match_in_history_table_query = select(MMR_History).where(
@@ -163,17 +176,17 @@ async def get_mmr_history(puuid):
             else:
                 print(f'Ignoring {match['match_id']} for {puuid}: already in db')
 
-        matches_list = MMR_History.query.filter_by(puuid=puuid).all()
-        return {
-            "matches": [
-                {
-                    "match_id": match.match_id,
-                    "mmr_change": match.mmr_change,
-                    "map": match.map,
-                    "account_rank": match.account_rank,
-                    "account_rr": match.account_rr,
-                    "account_rank_img": match.account_rank_img,
-                    "date": match.date
-                } for match in matches_list
-            ]
-        }
+    matches_list = MMR_History.query.filter_by(puuid=puuid).all()
+    return {
+        "matches": [
+            {
+                "match_id": match.match_id,
+                "mmr_change": match.mmr_change,
+                "map": match.map,
+                "account_rank": match.account_rank,
+                "account_rr": match.account_rr,
+                "account_rank_img": match.account_rank_img,
+                "date": match.date
+            } for match in matches_list
+        ]
+    }

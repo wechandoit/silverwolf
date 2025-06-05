@@ -24,7 +24,7 @@ async def get_player_stats(name, tag):
             return player_info
 
         else:
-            return f'Error fetching player stats | {response.status}: {response.reason}'
+            return None
 
 # Get verbose player stats (name, tag, puuid, region, account_level, card, title)
 
@@ -40,7 +40,7 @@ async def get_verbose_player_stats(puuid):
             return player_info
 
         else:
-            return f'Error fetching player stats | {response.status}: {response.reason}'
+            return None
 
 # Get the player's card (small/pfp) image if it exists
 
