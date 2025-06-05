@@ -28,6 +28,17 @@ class Verbose_Player(db.Model):
     card: Mapped[str]
     title: Mapped[str]
 
+class MMR_History(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    match_id: Mapped[str]
+    puuid: Mapped[str]
+    mmr_change: Mapped[int]
+    map: Mapped[str]
+    account_rank: Mapped[str]
+    account_rr: Mapped[int]
+    account_rank_img: Mapped[str]
+    date: Mapped[int]
+
 @app.route("/")
 def hello_world():
     return "<p>Hello, World!</p>"
@@ -115,3 +126,54 @@ async def get_verbose_player_stats(puuid):
                 'card': val.get_player_card(existing_verbose_player.card!=None, existing_verbose_player.card),
                 'title': await val.get_title(existing_verbose_player.title!=None, existing_verbose_player.title)
             }
+        
+@app.route("/mmr-history/<puuid>")
+async def get_mmr_history(puuid):
+    is_player_in_basic_table_query = select(Player).where(
+        Player.puuid == puuid
+    )
+
+    existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
+    if existing_player is None:
+        return f'<p>{puuid} not in the database</p>'
+    else:
+        mmr_history = await val.get_player_comp_mmr_history(existing_player.region, puuid)
+        matches_added = 0
+        for match in mmr_history:
+            is_match_in_history_table_query = select(MMR_History).where(
+                MMR_History.puuid == puuid,
+                MMR_History.match_id == match['match_id']
+            )
+
+            existing_match = db.session.execute(is_match_in_history_table_query).scalar_one_or_none()
+            if existing_match == None:
+                player_match = MMR_History(
+                    match_id = match['match_id'],
+                    puuid = puuid,
+                    mmr_change = match['mmr_change'], 
+                    map = match['map'],
+                    account_rank = match['account_rank'], 
+                    account_rr = match['account_rr'],
+                    account_rank_img = match['account_rank_img'],
+                    date = match['date']
+                )
+                db.session.add(player_match)
+                db.session.commit()
+                matches_added += 1
+            else:
+                print(f'Ignoring {match['match_id']} for {puuid}: already in db')
+
+        matches_list = MMR_History.query.filter_by(puuid=puuid).all()
+        return {
+            "matches": [
+                {
+                    "match_id": match.match_id,
+                    "mmr_change": match.mmr_change,
+                    "map": match.map,
+                    "account_rank": match.account_rank,
+                    "account_rr": match.account_rr,
+                    "account_rank_img": match.account_rank_img,
+                    "date": match.date
+                } for match in matches_list
+            ]
+        }

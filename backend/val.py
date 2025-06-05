@@ -64,3 +64,21 @@ async def get_title(has_title, title) -> str:
                 return 'None'
     else:
         return 'None'
+
+# Get the player's comp mmr history (at most 10 matches)
+async def get_player_comp_mmr_history(region, puuid):
+    account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr-history/{region}/{puuid}'
+    async with request('GET', account_mmr_history_url, headers=headers) as response:
+        if response.status == 200:
+            data = await response.json()
+            data = data['data']
+
+            if len(data) < 1:
+                return f'{puuid} has no recently logged ranked games'
+            else:
+                match_info = []
+                for match in data[:10]:
+                    match_info.append({'match_id': match['match_id'], 'mmr_change': int(match['mmr_change_to_last_game']), 'map': match['map']['name'],
+                                       'account_rank': match['currenttierpatched'], 'account_rr': int(match['ranking_in_tier']), 'account_rank_img': match['images']['small'],
+                                       'date': int(match['date_raw'])})
+                return match_info
