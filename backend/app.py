@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Integer, String, ARRAY, select
+from sqlalchemy import Integer, String, ARRAY, select, desc
 from sqlalchemy.orm import Mapped, mapped_column
 import val
 
@@ -57,7 +57,7 @@ def get_all_users():
         ]
     }
 
-@app.route("/<name>/<tag>")
+@app.route("/users/<name>/<tag>")
 async def get_player_stats(name, tag):
     query = select(Player).where(
         Player.name == name,
@@ -143,12 +143,7 @@ async def get_mmr_history(puuid):
     if existing_player is None:
         return f'<p>{puuid} is not in the db yet!</p>'
     else:
-        player_info = await val.get_verbose_player_stats(puuid)
-
-        if player_info is None:
-            return f'<p>{puuid} does not have a mmr history</p>'
-
-        mmr_history = await val.get_player_comp_mmr_history(player_info['region'], puuid)
+        mmr_history = await val.get_player_comp_mmr_history(existing_player.region, puuid)
 
         if mmr_history is None:
             return f'<p>{puuid} does not have a mmr history</p>'
@@ -175,10 +170,9 @@ async def get_mmr_history(puuid):
                 db.session.add(player_match)
                 db.session.commit()
                 matches_added += 1
-            else:
-                print(f'Ignoring {match['match_id']} for {puuid}: already in db')
 
-    matches_list = MMR_History.query.filter_by(puuid=puuid).all()
+    matches_list = MMR_History.query.filter_by(puuid=puuid).order_by(desc(MMR_History.date)).all()
+    print(f'Added {matches_added} matches to the db')
     return {
         "matches": [
             {

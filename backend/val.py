@@ -4,7 +4,7 @@ load_dotenv()
 
 from aiohttp import request
 
-API_KEY = os.getenv("VAL_API_KEY_UPDATER")
+API_KEY = os.getenv("VAL_API_KEY")
 
 headers = {
     "Accept": "application/json",
