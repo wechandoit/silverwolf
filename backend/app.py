@@ -33,6 +33,8 @@ class MMR_History(db.Model):
     match_id: Mapped[str]
     puuid: Mapped[str]
     mmr_change: Mapped[int]
+    refunded_rr: Mapped[int]
+    was_derank_protected: Mapped[int]
     map: Mapped[str]
     account_rank: Mapped[str]
     account_rr: Mapped[int]
@@ -134,7 +136,7 @@ async def get_verbose_player_stats(puuid):
             }
         
 @app.route("/mmr-history/<puuid>")
-async def get_mmr_history(puuid):
+async def get_puuid_mmr_history(puuid):
     is_player_in_basic_table_query = select(Player).where(
         Player.puuid == puuid
     )
@@ -161,6 +163,8 @@ async def get_mmr_history(puuid):
                     match_id = match['match_id'],
                     puuid = puuid,
                     mmr_change = match['mmr_change'], 
+                    refunded_rr = match['refunded_rr'],
+                    was_derank_protected= match['was_derank_protected'],
                     map = match['map'],
                     account_rank = match['account_rank'], 
                     account_rr = match['account_rr'],
@@ -178,11 +182,33 @@ async def get_mmr_history(puuid):
             {
                 "match_id": match.match_id,
                 "mmr_change": match.mmr_change,
+                "refunded_rr": match.refunded_rr,
+                "was_derank_protected": match.was_derank_protected,
                 "map": match.map,
                 "account_rank": match.account_rank,
                 "account_rr": match.account_rr,
                 "account_rank_img": match.account_rank_img,
                 "date": match.date
             } for match in matches_list
+        ]
+    }
+
+@app.route("/mmr-history")
+async def get_full_mmr_history():
+    mmr_history = MMR_History.query.order_by(desc(MMR_History.date)).all()
+    return {
+        "matches": [
+            {
+                "match_id": match.match_id,
+                "mmr_change": match.mmr_change,
+                "refunded_rr": match.refunded_rr,
+                "was_derank_protected": match.was_derank_protected,
+                "map": match.map,
+                "puuid": match.puuid,
+                "account_rank": match.account_rank,
+                "account_rr": match.account_rr,
+                "account_rank_img": match.account_rank_img,
+                "date": match.date
+            } for match in mmr_history
         ]
     }

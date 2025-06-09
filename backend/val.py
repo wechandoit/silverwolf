@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import datetime
+
 from aiohttp import request
 
 API_KEY = os.getenv("VAL_API_KEY")
@@ -65,20 +67,38 @@ async def get_title(has_title, title) -> str:
     else:
         return 'None'
 
-# Get the player's comp mmr history (at most 10 matches)
+# Get the player's comp mmr history
+
 async def get_player_comp_mmr_history(region, puuid):
-    account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v1/by-puuid/mmr-history/{region}/{puuid}'
+    account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v2/by-puuid/mmr-history/{region}/pc/{puuid}'
     async with request('GET', account_mmr_history_url, headers=headers) as response:
         if response.status == 200:
             data = await response.json()
-            data = data['data']
+            data = data['data']['history']
 
             if len(data) < 1:
                 return None
             else:
                 match_info = []
-                for match in data[:10]:
-                    match_info.append({'match_id': match['match_id'], 'mmr_change': int(match['mmr_change_to_last_game']), 'map': match['map']['name'],
-                                       'account_rank': match['currenttierpatched'], 'account_rr': int(match['ranking_in_tier']), 'account_rank_img': match['images']['small'],
-                                       'date': int(match['date_raw'])})
+                for match in data:
+
+                    date_str = match['date']
+                    if date_str.endswith('Z'):
+                        date_str = date_str[:-1]
+                    dt = datetime.datetime.fromisoformat(date_str)
+                    time = int(dt.replace(tzinfo=datetime.timezone.utc).timestamp())
+
+                    match_info.append({'match_id': match['match_id'], 'mmr_change': int(match['last_change']), 'map': match['map']['name'],
+                                       'refunded_rr': match['refunded_rr'], 'was_derank_protected': int(match['was_derank_protected']),
+                                       'account_rank': match['tier']['name'], 'account_rr': int(match['rr']), 'account_rank_img': await get_rank_img(int(match['tier']['id'])),
+                                       'date': time})
                 return match_info
+
+# Get the rank image from the rank id (add error checking later)
+
+async def get_rank_img(id:int):
+    async with request('GET', f'https://valorant-api.com/v1/competitivetiers') as response:
+        if response.status == 200:
+            data = await response.json()
+            tiers_list = data['data'][4]['tiers']
+            return tiers_list[id]['largeIcon']
