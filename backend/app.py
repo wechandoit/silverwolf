@@ -4,12 +4,14 @@ from sqlalchemy import Integer, String, ARRAY, select, desc
 from sqlalchemy.orm import Mapped, mapped_column
 import val
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 db = SQLAlchemy()
 app = Flask(__name__)
-db_name = 'val_stats.db'
-db_type = 'sqlite'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_name
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SUPABASE_DB_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
 db.init_app(app)
