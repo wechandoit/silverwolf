@@ -82,12 +82,7 @@ async def get_player_comp_mmr_history(region, puuid):
                 match_info = []
                 for match in data:
 
-                    date_str = match['date']
-                    if date_str.endswith('Z'):
-                        date_str = date_str[:-1]
-                    dt = datetime.datetime.fromisoformat(date_str)
-                    time = int(dt.replace(tzinfo=datetime.timezone.utc).timestamp())
-
+                    time = convert_datetime_string_to_unix(match['date'])
                     match_info.append({'match_id': match['match_id'], 'mmr_change': int(match['last_change']), 'map': match['map']['name'],
                                        'refunded_rr': match['refunded_rr'], 'was_derank_protected': int(match['was_derank_protected']),
                                        'account_rank': match['tier']['name'], 'account_rr': int(match['rr']), 'account_rank_img': await get_rank_img(int(match['tier']['id'])),
@@ -97,8 +92,90 @@ async def get_player_comp_mmr_history(region, puuid):
 # Get the rank image from the rank id (add error checking later)
 
 async def get_rank_img(id:int):
+    if id < 0 or id > 27: return None # ids must be 0-27
     async with request('GET', f'https://valorant-api.com/v1/competitivetiers') as response:
         if response.status == 200:
             data = await response.json()
             tiers_list = data['data'][4]['tiers']
             return tiers_list[id]['largeIcon']
+        
+# Convert datetime string (ISO format) to unix
+
+def convert_datetime_string_to_unix(date_str):
+    if date_str.endswith('Z'):
+        date_str = date_str[:-1]
+    dt = datetime.datetime.fromisoformat(date_str)
+    return int(dt.replace(tzinfo=datetime.timezone.utc).timestamp())
+
+async def get_match_info(region, puuid):
+    match_url = f'https://api.henrikdev.xyz/valorant/v4/match/{region}/{puuid}'
+    async with request('GET', match_url, headers=headers) as response:
+        if response.status == 200:
+            data = await response.json()
+            data = data['data']
+
+            metadata = data['metadata']
+            full_match_info = {'match_id': metadata['match_id'], 'map': metadata['map']['name'], 
+                               'game_length': int(metadata['game_length_in_ms']), 'game_start': convert_datetime_string_to_unix(metadata['started_at']),
+                               'region': str(metadata['region']).upper(), 'server': metadata['cluster']}
+            
+            # get who won and how many rounds each team won
+
+            who_won = ''
+            for team in data['teams']:
+                if team['team_id'] == 'Red':
+                    full_match_info['red_score'] = team['rounds']['won']
+                    if team['won'] == True:
+                        who_won = 'red'
+                elif team['team_id'] == 'Blue':
+                    full_match_info['blue_score'] = team['rounds']['won']
+                    if team['won'] == True:
+                        who_won = 'blue'
+            
+            if who_won == '':
+                who_won = 'tie'
+            
+            full_match_info['who_won'] = who_won
+
+            # player stats
+
+            player_stats = []
+            for player in data['players']:
+                stats = player['stats']
+                casts = player['ability_casts']
+                player_stats.append({'puuid': player['puuid'], 'agent': player['agent']['name'], 'party_id': player['party_id'], 'team': str(player['team_id']).lower(),
+                          'score': stats['score'], 'kills': stats['kills'], 'deaths': stats['deaths'], 'assists': stats['assists'],
+                          'headshots': stats['headshots'], 'bodyshots': stats['bodyshots'], 'legshots': stats['legshots'],
+                          'damage_dealt': stats['damage']['dealt'], 'damage_received': stats['damage']['received'],
+                          'c_ability': casts['ability1'], 'e_ability': casts['grenade'], 'q_ability': casts['ability2'], 'x_ability': casts['ultimate']})
+            
+            full_match_info['match_players'] = player_stats
+
+            # kill stats
+
+            kill_stats = []
+            for kill in data['kills']:
+                kill_dict = {'time_in_round': kill['time_in_round_in_ms'], 'round': kill['round'], 'killer_puuid': kill['killer']['puuid'], 'victim_puuid': kill['victim']['puuid'],
+                             'victim_x': kill['location']['x'], 'victim_y': kill['location']['y'], 'weapon_id': kill['weapon']['id']}
+                
+                # get killer player location from player_locations list
+                for player in kill['player_locations']:
+                    if player['player']['puuid'] == kill_dict['killer_puuid']:
+                        kill_dict['killer_x'] = player['location']['x']
+                        kill_dict['killer_y'] = player['location']['y']
+                        kill_dict['killer_view'] = player['view_radians']
+
+                # get assistant puuids
+                assistants = []
+                for assistant in kill['assistants']:
+                    assistants.append(assistant['puuid'])
+                
+                kill_dict['assistants'] = assistants
+                
+                kill_stats.append(kill_dict)
+
+            full_match_info['match_kills'] = kill_stats
+
+            return full_match_info
+        else:
+            return None
