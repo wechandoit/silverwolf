@@ -57,7 +57,7 @@ async def get_verbose_player_stats(puuid):
 
     existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
     if existing_player is None:
-        return f'<p>{puuid} not in the database</p>'
+        return {'error': f'<p>{puuid} not in the database</p>'}, 404
     else:
         is_player_in_verbose_table_query = select(Verbose_Player).where(
             Verbose_Player.puuid == puuid
@@ -106,12 +106,12 @@ async def get_puuid_mmr_history(puuid):
 
     existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
     if existing_player is None:
-        return f'<p>{puuid} is not in the db yet!</p>'
+        return {'error': f'<p>{puuid} is not in the db yet!</p>'}, 404
     else:
         mmr_history = await val.get_player_comp_mmr_history(existing_player.region, puuid)
 
         if mmr_history is None:
-            return f'<p>{puuid} does not have a mmr history</p>'
+            return {'error': f'<p>{puuid} does not have a mmr history</p>'}, 404
         
         matches_added = 0
         for match in mmr_history:
@@ -188,7 +188,7 @@ async def get_match_info(region, match_id):
     if existing_match is None:
         full_match_info = await val.get_match_info(region, match_id)
         if full_match_info is None:
-            return f'<p>Cannot retrieve info for match: {match_id}...</p>'
+            return {'error': f'<p>Cannot retrieve info for match: {match_id}...</p>'}, 404
         else:
             new_match = Competitive_Match(
                 match_id = full_match_info["match_id"],

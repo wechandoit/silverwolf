@@ -165,12 +165,15 @@ async def get_match_info(region, puuid):
                         kill_dict['killer_y'] = player['location']['y']
                         kill_dict['killer_view'] = player['view_radians']
                 
-                # if player died to themself
+                # if player died to themself, killer died before this, etc.
                 if not ('killer_x' in kill_dict):
-                    kill_dict['killer_x'] = kill_dict['victim_x']
-                    kill_dict['killer_y'] = kill_dict['victim_y']
+                    if kill_dict['killer_puuid'] == kill_dict['victim_puuid']:
+                        kill_dict['killer_x'] = kill_dict['victim_x']
+                        kill_dict['killer_y'] = kill_dict['victim_y']
+                    else:
+                        kill_dict['killer_x'] = -100000
+                        kill_dict['killer_y'] = -100000
                     kill_dict['killer_view'] = -1
-                    kill_dict['weapon_id'] = 'None'
 
                 # get assistant puuids
                 assistants = []
