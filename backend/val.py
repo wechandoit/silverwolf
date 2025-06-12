@@ -144,10 +144,11 @@ async def get_match_info(region, puuid):
                 stats = player['stats']
                 casts = player['ability_casts']
                 player_stats.append({'puuid': player['puuid'], 'agent': player['agent']['name'], 'party_id': player['party_id'], 'team': str(player['team_id']).lower(),
-                          'score': stats['score'], 'kills': stats['kills'], 'deaths': stats['deaths'], 'assists': stats['assists'],
-                          'headshots': stats['headshots'], 'bodyshots': stats['bodyshots'], 'legshots': stats['legshots'],
-                          'damage_dealt': stats['damage']['dealt'], 'damage_received': stats['damage']['received'],
-                          'c_ability': casts['ability1'], 'e_ability': casts['grenade'], 'q_ability': casts['ability2'], 'x_ability': casts['ultimate']})
+                                     'name': player['name'], 'tag': player['tag'],
+                                     'score': stats['score'], 'kills': stats['kills'], 'deaths': stats['deaths'], 'assists': stats['assists'],
+                                     'headshots': stats['headshots'], 'bodyshots': stats['bodyshots'], 'legshots': stats['legshots'],
+                                     'damage_dealt': stats['damage']['dealt'], 'damage_received': stats['damage']['received'],
+                                     'c_ability': casts['ability1'], 'e_ability': casts['grenade'], 'q_ability': casts['ability2'], 'x_ability': casts['ultimate']})
             
             full_match_info['match_players'] = player_stats
 

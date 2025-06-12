@@ -55,6 +55,8 @@ class Competitive_Match_Player(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     match_id: Mapped[int] = mapped_column(db.ForeignKey("competitive_match.id"))
     puuid: Mapped[str]
+    name: Mapped[str]
+    tag: Mapped[str]
     agent: Mapped[str]
     party_id: Mapped[str]
     team: Mapped[str]

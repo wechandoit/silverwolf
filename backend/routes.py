@@ -208,6 +208,8 @@ async def get_match_info(region, match_id):
                 player = Competitive_Match_Player(
                     match_id = new_match.id,
                     puuid = player_info["puuid"],
+                    name = player_info["name"],
+                    tag = player_info["tag"],
                     agent = player_info["agent"],
                     team = player_info["team"],
                     party_id = player_info['party_id'],
@@ -262,6 +264,8 @@ async def get_match_info(region, match_id):
         match_players = [
             {
                 'puuid': player.puuid, 
+                'name': player.name, 
+                'tag': player.tag, 
                 'agent': player.agent, 
                 'party_id': player.party_id, 
                 'team': player.team,
