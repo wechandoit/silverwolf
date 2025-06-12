@@ -1,4 +1,4 @@
-Flask
+Flask[async]
 Flask-SQLAlchemy
 SQLAlchemy
 psycopg2-binary
