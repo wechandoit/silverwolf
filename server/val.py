@@ -6,6 +6,11 @@ import datetime
 
 from aiohttp import request
 
+from typing import Optional, Dict
+import asyncio
+_tiers_cache: Optional[Dict] = None
+_tiers_lock = asyncio.Lock()
+
 API_KEY = os.getenv("VAL_API_KEY")
 
 headers = {
@@ -112,15 +117,33 @@ async def get_player_stored_comp_mmr_history(region, puuid):
                                        'date': time})
                 return match_info
 
-# Get the rank image from the rank id (add error checking later)
+# Get the rank image from the rank id
 
-async def get_rank_img(id:int):
-    if id < 0 or id > 27: return None # ids must be 0-27
-    async with request('GET', f'https://valorant-api.com/v1/competitivetiers') as response:
-        if response.status == 200:
-            data = await response.json()
-            tiers_list = data['data'][4]['tiers']
-            return tiers_list[id]['largeIcon']
+async def fetch_tiers_list() -> Optional[Dict]:
+    global _tiers_cache
+
+    async with _tiers_lock:
+        # Return cached value if available
+        if _tiers_cache is not None:
+            return _tiers_cache
+
+        # Fetch and cache if not available
+        async with request('GET', 'https://valorant-api.com/v1/competitivetiers') as response:
+            if response.status == 200:
+                data = await response.json()
+                _tiers_cache = data['data'][4]['tiers']
+                return _tiers_cache
+    return None
+
+async def get_rank_img(id: int) -> Optional[str]:
+    if id < 0 or id > 27:
+        return None  # ids must be 0-27
+    
+    tiers_list = await fetch_tiers_list()
+    if tiers_list is None:
+        return None
+        
+    return tiers_list[id]['largeIcon']
         
 # Convert datetime string (ISO format) to unix
 
