@@ -135,8 +135,9 @@ async def get_puuid_mmr_history(puuid):
                     date = match['date']
                 )
                 db.session.add(player_match)
-                db.session.commit()
                 matches_added += 1
+        
+        db.session.commit()
 
     matches_list = MMR_History.query.filter_by(puuid=puuid).order_by(desc(MMR_History.date)).all()
     print(f'Added {matches_added} matches to the db')
@@ -306,4 +307,88 @@ async def get_match_info(region, match_id):
         full_match_info['match_kills'] = match_kills
 
         return full_match_info
+
+@app.route("/match-history/<puuid>")
+async def get_puuid_match_history(puuid):
+    is_player_in_basic_table_query = select(Player).where(
+        Player.puuid == puuid
+    )
+
+    existing_player = db.session.execute(is_player_in_basic_table_query).scalar_one_or_none()
+    if existing_player is None:
+        return {'error': f'<p>{puuid} is not in the db yet!</p>'}, 404
+    else:
         
+        map_filter = request.args.get('map')
+
+        matches_list = (
+            db.session.query(Competitive_Match)
+            .join(Competitive_Match_Player)
+            .filter(Competitive_Match_Player.puuid == puuid)
+        )
+
+        if map_filter:
+            matches_list = matches_list.filter(Competitive_Match.map == map_filter)
+
+        matches_list = matches_list.order_by(desc(Competitive_Match.game_start)).all()
+
+        matches_return_list = []
+        for existing_match in matches_list:
+            full_match_info = {
+                'match_id': existing_match.match_id,
+                'map': existing_match.map,
+                'game_length': existing_match.game_length,
+                'game_start': existing_match.game_start,
+                'region': existing_match.region,
+                'server': existing_match.server,
+                'blue_score': existing_match.blue_score,
+                'red_score': existing_match.red_score,
+                'who_won': existing_match.who_won
+            }
+
+            match_players = [
+                {
+                    'puuid': player.puuid, 
+                    'name': player.name, 
+                    'tag': player.tag, 
+                    'agent': player.agent, 
+                    'party_id': player.party_id, 
+                    'team': player.team,
+                    'score': player.score, 
+                    'kills': player.kills, 
+                    'deaths': player.deaths, 
+                    'assists': player.assists,
+                    'headshots': player.headshots, 
+                    'bodyshots': player.bodyshots, 
+                    'legshots': player.legshots,
+                    'damage_dealt': player.damage_dealt, 
+                    'damage_received': player.damage_received,
+                    'c_ability': player.c_ability, 
+                    'e_ability': player.e_ability, 
+                    'q_ability': player.q_ability, 
+                    'x_ability': player.x_ability
+                } for player in existing_match.match_players
+            ]
+
+            match_kills = [
+                {
+                    'match_id': kill.match_id,
+                    'time_in_round': kill.time_in_round,
+                    'round': kill.round,
+                    'killer_puuid': kill.killer_puuid,
+                    'victim_puuid': kill.victim_puuid,
+                    'killer_x': kill.killer_x,
+                    'killer_y': kill.killer_y,
+                    'victim_x': kill.victim_x,
+                    'victim_y': kill.victim_y,
+                    'killer_view': kill.killer_view,
+                    'weapon_id': kill.weapon_id,
+                    'assistants': list(kill.assistants) if hasattr(kill, "assistants") else []
+                } for kill in existing_match.match_kills
+            ]
+
+            full_match_info['match_players'] = match_players
+            full_match_info['match_kills'] = match_kills
+            matches_return_list.append(full_match_info)
+
+        return {'matches': matches_return_list}
