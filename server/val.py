@@ -73,6 +73,7 @@ async def get_title(has_title, title) -> str:
         return 'None'
 
 # Get the player's comp mmr history
+# We can only get up to 1-2 months of matches back (ONLY UP TO 20)
 
 async def get_player_comp_mmr_history(region, puuid):
     account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v2/by-puuid/mmr-history/{region}/pc/{puuid}'
@@ -95,6 +96,8 @@ async def get_player_comp_mmr_history(region, puuid):
                 return match_info
 
 # Get the player's comp mmr history (stored)
+# If we have retrieved mmr history for a player before, it can be found in the stored-mmr-history endpoint.
+# Otherwise, it will be the same as get_player_comp_mmr_history's retrieval
 
 async def get_player_stored_comp_mmr_history(region, puuid):
     account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v2/by-puuid/stored-mmr-history/{region}/pc/{puuid}'

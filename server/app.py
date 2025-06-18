@@ -12,4 +12,4 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
 db.init_app(app)
 
-import routes
+import routes_v1
