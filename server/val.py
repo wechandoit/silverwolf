@@ -8,8 +8,11 @@ from aiohttp import request
 
 from typing import Optional, Dict
 import asyncio
+
 _tiers_cache: Optional[Dict] = None
+_title_cache: Optional[Dict] = None
 _tiers_lock = asyncio.Lock()
+_title_lock = asyncio.Lock()
 
 API_KEY = os.getenv("VAL_API_KEY")
 
@@ -27,7 +30,8 @@ async def get_player_stats(name, tag):
             data = await response.json()
             data = data['data']
             
-            player_info = {'name': data['name'], 'tag': data['tag'], 'puuid': data['puuid'], 'region': data['region'].upper()}
+            player_info = {'name': data['name'], 'tag': data['tag'], 'puuid': data['puuid'], 'region': data['region'].upper(), 
+                           'account_level': data['account_level'], 'card': data['card'], 'title': data['title']}
             return player_info
 
         else:
@@ -59,18 +63,30 @@ def get_player_card(has_card, card) -> str:
     
 # Get the player's title if it exists
 
-async def get_title(has_title, title) -> str:
-    if has_title:
-        title_link_url = f'https://valorant-api.com/v1/playertitles/{title}'
-        async with request('GET', title_link_url, headers={}) as response:
+async def get_title(has_title: bool, title_id: str) -> str:
+    global _title_cache
+    
+    if not has_title:
+        return 'None'
+    
+    # Check cache first
+    if _title_cache is not None:
+        return _title_cache.get(title_id, 'None')
+    
+    # Cache not populated
+    async with _title_lock:
+        if _title_cache is not None:
+            return _title_cache.get(title_id, 'None')
+        
+        url = 'https://valorant-api.com/v1/playertitles'
+        async with request('GET', url, headers={}) as response:
             if response.status == 200:
                 data = await response.json()
-                data = data['data']
-                return data['titleText']
+                _title_cache = {item['uuid']: item['titleText'] for item in data['data']}
             else:
-                return 'None'
-    else:
-        return 'None'
+                _title_cache = {}
+    
+    return _title_cache.get(title_id, 'None')
 
 # Get the player's comp mmr history
 # We can only get up to 1-2 months of matches back (ONLY UP TO 20)

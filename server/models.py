@@ -21,6 +21,17 @@ class Verbose_Player(db.Model):
     card: Mapped[str]
     title: Mapped[str]
 
+class Valorant_Player(db.Model):
+    __tablename__ = "valorant_player"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    puuid: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
+    tag: Mapped[str]
+    region: Mapped[str]
+    account_level: Mapped[int] = mapped_column(default=0)
+    card: Mapped[str]
+    title: Mapped[str]
+
 class MMR_History(db.Model):
     __tablename__ = "mmr_history"
     id: Mapped[int] = mapped_column(primary_key=True)
