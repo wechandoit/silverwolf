@@ -1,5 +1,6 @@
 Flask[async]
 Flask-SQLAlchemy
+Flask-Caching
 SQLAlchemy
 psycopg2-binary
 python-dotenv
