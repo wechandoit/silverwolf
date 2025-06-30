@@ -55,6 +55,8 @@ async def get_player_by_username_v2(name, tag):
         existing_player.title = player_info['title']
         existing_player.card = player_info['card']
 
+        db.session.commit()
+
         return {
             'data': 
                 {
@@ -115,6 +117,8 @@ async def get_player_by_puuid_v2(puuid):
         existing_player.account_level = player_info['account_level']
         existing_player.title = player_info['title']
         existing_player.card = player_info['card']
+
+        db.session.commit()
 
         return {
             'data': 

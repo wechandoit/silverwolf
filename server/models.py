@@ -5,22 +5,6 @@ from typing import List
 
 db = SQLAlchemy()
 
-class Player(db.Model):
-    __tablename__ = "player"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    puuid: Mapped[str] = mapped_column(unique=True)
-    name: Mapped[str]
-    tag: Mapped[str]
-    region: Mapped[str]
-
-class Verbose_Player(db.Model):
-    __tablename__ = "verbose_player"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    puuid: Mapped[str] = mapped_column(unique=True)
-    account_level: Mapped[int] = mapped_column(default=0)
-    card: Mapped[str]
-    title: Mapped[str]
-
 class Valorant_Player(db.Model):
     __tablename__ = "valorant_player"
     id: Mapped[int] = mapped_column(primary_key=True)
