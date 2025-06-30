@@ -91,8 +91,28 @@ async def get_title(has_title: bool, title_id: str) -> str:
 # Get the player's comp mmr history
 # We can only get up to 1-2 months of matches back (ONLY UP TO 20)
 
-async def get_player_comp_mmr_history(region, puuid):
+async def get_player_comp_mmr_history_by_puuid(region, puuid):
     account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v2/by-puuid/mmr-history/{region}/pc/{puuid}'
+    async with request('GET', account_mmr_history_url, headers=headers) as response:
+        if response.status == 200:
+            data = await response.json()
+            data = data['data']['history']
+
+            if len(data) < 1:
+                return None
+            else:
+                match_info = []
+                for match in data:
+
+                    time = convert_datetime_string_to_unix(match['date'])
+                    match_info.append({'match_id': match['match_id'], 'mmr_change': int(match['last_change']), 'map': match['map']['name'],
+                                       'refunded_rr': match['refunded_rr'], 'was_derank_protected': int(match['was_derank_protected']),
+                                       'account_rank': match['tier']['name'], 'account_rr': int(match['rr']), 'account_rank_img': await get_rank_img(int(match['tier']['id'])),
+                                       'date': time})
+                return match_info
+
+async def get_player_comp_mmr_history_by_username(region, name, tag):
+    account_mmr_history_url = f'https://api.henrikdev.xyz/valorant/v2/mmr-history/{region}/pc/{name}/{tag}'
     async with request('GET', account_mmr_history_url, headers=headers) as response:
         if response.status == 200:
             data = await response.json()
